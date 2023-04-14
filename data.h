@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define MAX_PROCESS_NAME 8
-#define MAX_CHAR_LINE 16
+#define MAX_CHAR_LINE 32
 
 typedef struct process process_t;
 

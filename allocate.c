@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     char *filename = NULL;
     char *scheduler = NULL;
     char *mem_strategy = NULL;
-    int quantum = 0;
+    int quantum = 1;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-f") == 0) {
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     process_t **process_list = read_process(filename, &process_num);
 
     // start process schedulin
-    start_scheduling(process_list, scheduler, process_num);
+    start_scheduling(process_list, scheduler, process_num, quantum);
 
     // display scheduling result
 

@@ -1,19 +1,19 @@
 #include "schedule.h"
 
 void start_scheduling(process_t **process, char *scheduler, 
-                      int num) {
+                      int num, int quantum) {
 
     // determine scheduler
     if (strcmp(scheduler, "SJF") == 0) {
-        do_sjf(process, num);
+        do_sjf(process, num, quantum);
     } else if (strcmp(scheduler, "RR") == 0) {
-        do_rr(process, num);
+        do_rr(process, num, quantum);
     }
 
 }
 
 // Run processes in Shortest Job First
-void do_sjf(process_t **p, int n) {
+void do_sjf(process_t **p, int n, int q) {
 
     // initiate current time from 0
     // assume all processes are not finished yet
@@ -45,12 +45,23 @@ void do_sjf(process_t **p, int n) {
         // check reamining ready process
         int remain = 0;
         for (int k = 0; k < n; k++) {
-            if (get_arrival_time(p[k]) < current_time && is_finished[k] == 0) {
-                remain++;
+            if (is_finished[k] == 0) {
+
+                // process may ready only when it arrives ahead
+                if (get_arrival_time(p[k]) < current_time) {
+
+                    // process ready when meet current or previous quantum
+                    if ((get_arrival_time(p[k]) % q == 0) || 
+                        (get_arrival_time(p[k]) / q == current_time / q - 1 && current_time % q != 0) ||
+                        (get_arrival_time(p[k]) / q < current_time / q - 1)) {
+                        remain++;
+                    }
+                }
             }
         }
 
         // print out finished log
+        while (current_time % q != 0) current_time++;
         printf("%d,FINISHED,process_name=%s,proc_remaining=%d\n", 
                 current_time, 
                 get_process_name(p[j]), 
@@ -59,7 +70,7 @@ void do_sjf(process_t **p, int n) {
 
 }
 
-void do_rr(process_t **p, int num) {
+void do_rr(process_t **p, int num, int q) {
 
 }
 
