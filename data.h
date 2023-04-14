@@ -11,7 +11,12 @@
 
 typedef struct process process_t;
 
-
 process_t **read_process(char *filename, int *num);
+
+int get_arrival_time(process_t *process);
+
+char *get_process_name(process_t *process);
+
+int get_service_time(process_t *process);
 
 #endif

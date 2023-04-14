@@ -27,7 +27,8 @@ process_t **read_process(char *filename, int *num) {
     *num = line_total;
 
     // prepare storing process info
-    process_t **processes = malloc(line_total * sizeof(process_t *));
+    process_t **processes = malloc(line_total * 
+                                   sizeof(process_t *));
     fseek(file, 0, SEEK_SET);
 
     // store process
@@ -48,4 +49,16 @@ process_t **read_process(char *filename, int *num) {
     // return list of process
     return processes;
 
+}
+
+int get_arrival_time(process_t *process) {
+    return process->arrival;
+}
+
+char *get_process_name(process_t *process) {
+    return process->name;
+}
+
+int get_service_time(process_t *process) {
+    return process->service;
 }
