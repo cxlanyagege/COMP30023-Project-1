@@ -90,7 +90,7 @@ void do_sjf(process_t **p, int n, int q, int time,
         // print out finished result
         while (time % q != 0) time++;
 
-        //
+        if (use_strategy) {
         int count = 0;
         int *original_index = malloc(n * sizeof(int));
         process_t **runtime = malloc(n * sizeof(process_t *));
@@ -112,10 +112,13 @@ void do_sjf(process_t **p, int n, int q, int time,
             mem_allocated[original_index[x]] = 1;
         }
 
+        clear_mem(memory, memstart, get_process_mem(p[j]));
+
+        }
+
         print_result_msg(n, q, time, p, is_finished, 
                          get_process_name(p[j]));
-
-        clear_mem(memory, memstart, get_process_mem(p[j]));
+                         
         
     }
 
@@ -167,6 +170,10 @@ void do_rr(process_t **p, int n, int q, int time,
                             }
                         }
                     }
+                } else {
+                    for (int j = 0; j < n; j ++) {
+                        mem_allocated[j] = 1;
+                    }
                 }
 
                 if (mem_allocated[i] && (last_process == NULL || 
@@ -188,9 +195,10 @@ void do_rr(process_t **p, int n, int q, int time,
                     print_result_msg(n, q, time, p, is_finished, 
                                      get_process_name(p[i]));
                     
-                    clear_mem(memory, memstart[i], get_process_mem(p[i]));
-
-                    break;
+                    if (use_strategy) {
+                        clear_mem(memory, memstart[i], get_process_mem(p[i]));
+                        break;
+                    }
                 }
 
             }
