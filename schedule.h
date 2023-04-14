@@ -9,10 +9,20 @@
 void start_scheduling(process_t **lines, char *scheduler, 
                       int num, int quantum);
 
-void do_sjf(process_t **p, int num, int q);
+void do_sjf(process_t **p, int num, int q, int time, 
+            int *is_finished);
 
-void do_rr(process_t **p, int num, int q);
+void do_rr(process_t **p, int num, int q, int time, 
+           int *is_finished);
 
 int compare_time(const void *a, const void *b);
+
+void print_running_msg(int time, int remain_time, char *name);
+
+void print_result_msg(int n, int q, int time, 
+                      process_t **p, int *is_finished, char *name);
+
+int check_proc_remaining(int n, int q, int time, 
+                         process_t **p, int *is_finished);
 
 #endif
