@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "data.h"
 
-#define MAX_PROCESS_NAME 8
-
-char **start_scheduling(char **lines, char *scheduler, int num);
+void start_scheduling(process_t **lines, char *scheduler, int num);
 
 char **do_sjf(char **lines, int num);
 

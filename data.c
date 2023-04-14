@@ -1,6 +1,15 @@
 #include "data.h"
 
-char **read_process(char *filename, int *num) {
+struct process
+{
+    int arrival;
+    char name[MAX_PROCESS_NAME];
+    int service;
+    int memory;
+};
+
+
+process_t **read_process(char *filename, int *num) {
 
     // open process list file
     FILE *file = fopen(filename, "r");
@@ -15,18 +24,21 @@ char **read_process(char *filename, int *num) {
     while (fgets(line, sizeof(line), file) != NULL) {
         line_total++;
     }
-    num = line_total;
+    *num = line_total;
 
     // prepare storing process info
-    char **lines = (char **)malloc(line_total * sizeof(char *));
+    process_t **processes = malloc(line_total * sizeof(process_t *));
     fseek(file, 0, SEEK_SET);
 
     // store process
     int i = 0;
     while (fgets(line, sizeof(line), file) != NULL) {
         // line[strcspn(line, "\n")] = 0;
-        lines[i] = (char *)malloc(strlen(line) + 1);
-        strcpy(lines[i], line);
+        processes[i] = malloc(sizeof(process_t *));
+        sscanf(line, "%d %s %d %d", &processes[i]->arrival,
+                                    processes[i]->name,
+                                    &processes[i]->service,
+                                    &processes[i]->memory);
         i++;
     }
 
@@ -34,6 +46,6 @@ char **read_process(char *filename, int *num) {
     fclose(file);
 
     // return list of process
-    return lines;
+    return processes;
 
 }

@@ -1,12 +1,12 @@
 #include "schedule.h"
 
-char **start_scheduling(char **lines, char *scheduler, int num) {
+void start_scheduling(process_t **lines, char *scheduler, int num) {
 
     // determine scheduler
     if (strcmp(scheduler, "SJF") == 0) {
-        return do_sjf(lines, num);
+        do_sjf(lines, num);
     } else if (strcmp(scheduler, "RR") == 0) {
-        return do_rr(lines, num);
+        do_rr(lines, num);
     }
 
 }

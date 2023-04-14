@@ -6,8 +6,12 @@
 #include <assert.h>
 #include <string.h>
 
+#define MAX_PROCESS_NAME 8
 #define MAX_CHAR_LINE 16
 
-char **read_process(char *filename, int *num);
+typedef struct process process_t;
+
+
+process_t **read_process(char *filename, int *num);
 
 #endif

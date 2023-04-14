@@ -30,10 +30,10 @@ int main(int argc, char *argv[]) {
 
     // read process list
     int process_num;
-    char **process_lines = read_process(filename, &process_num);
+    process_t **process_list = read_process(filename, &process_num);
 
     // start process schedulin
-    char **result = start_scheduling(process_lines, scheduler, process_num);
+    start_scheduling(process_list, scheduler, process_num);
 
     // display scheduling result
 
