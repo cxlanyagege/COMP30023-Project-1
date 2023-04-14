@@ -4,11 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "data.h"
 #include "memory.h"
-
-typedef struct node node_t;
-typedef struct queue queue_t;
 
 void start_scheduling(process_t **lines, char *scheduler, 
                       int num, int quantum, char *mem_strategy);

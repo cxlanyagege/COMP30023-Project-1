@@ -1,20 +1,5 @@
 #include "schedule.h"
 
-struct node
-{
-    process_t *process;
-    int remain_time;
-    node_t *next;
-};
-
-struct queue
-{
-    node_t *head;
-    node_t *tail;
-};
-
-
-
 void start_scheduling(process_t **process, char *scheduler, 
                       int num, int quantum, char *mem_strategy) {
 
@@ -38,6 +23,11 @@ void start_scheduling(process_t **process, char *scheduler,
 // Run processes in Shortest Job First
 void do_sjf(process_t **p, int n, int q, int time, 
             int *is_finished, char *strategy) {
+
+    int turnaround = 0;
+    double max_overhead = 0.0;
+    double total_overhead = 0.0;
+
 
     // sort processes ascending by service time
     qsort(p, n, sizeof(*p), compare_service_time);
@@ -118,14 +108,34 @@ void do_sjf(process_t **p, int n, int q, int time,
 
         print_result_msg(n, q, time, p, is_finished, 
                          get_process_name(p[j]));
-                         
+
+        turnaround += (time - get_arrival_time(p[j]));
+
+        total_overhead += (double)((time - get_arrival_time(p[j])) / (double)(get_service_time(p[j])));
+        if ((double)(time - get_arrival_time(p[j])) / (get_service_time(p[j])) > max_overhead) {
+            max_overhead = (double)(time - get_arrival_time(p[j])) / (get_service_time(p[j]));
+        }
         
     }
+
+    if (turnaround % n != 0) {
+        turnaround /= n;
+        turnaround ++;
+    } else {
+        turnaround /= n;
+    }
+    printf("Turnaround time %d\nTime overhead %.2lf %.2lf\nMakespan %d\n", 
+            turnaround, round(max_overhead * 100) / 100, round(total_overhead * 100 / n) / 100, time);
 
 }
 
 void do_rr(process_t **p, int n, int q, int time, 
            int *is_finished, char *strategy) {
+
+
+    int turnaround = 0;
+    double max_overhead = 0.0;
+    double total_overhead = 0.0;
 
     // remain time for each process each round
     int remain_time[n];
@@ -194,6 +204,13 @@ void do_rr(process_t **p, int n, int q, int time,
 
                     print_result_msg(n, q, time, p, is_finished, 
                                      get_process_name(p[i]));
+
+                    turnaround += (time - get_arrival_time(p[i]));
+
+                    total_overhead += (double)((time - get_arrival_time(p[i])) / (double)(get_service_time(p[i])));
+                    if ((double)(time - get_arrival_time(p[i])) / (get_service_time(p[i])) > max_overhead) {
+                        max_overhead = (double)(time - get_arrival_time(p[i])) / (get_service_time(p[i]));
+                    }
                     
                     if (use_strategy) {
                         clear_mem(memory, memstart[i], get_process_mem(p[i]));
@@ -212,6 +229,15 @@ void do_rr(process_t **p, int n, int q, int time,
         all_finished = finished_count == n ? 1 : 0;
 
     }
+
+    if (turnaround % n != 0) {
+        turnaround /= n;
+        turnaround ++;
+    } else {
+        turnaround /= n;
+    }
+    printf("Turnaround time %d\nTime overhead %.2lf %.2lf\nMakespan %d\n", 
+            turnaround, round(max_overhead * 100) / 100, round(total_overhead / n * 100) / 100, time);
 
 }
 

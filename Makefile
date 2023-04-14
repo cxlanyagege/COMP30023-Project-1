@@ -9,7 +9,7 @@ all: $(TARGET)
 
 # link obj files
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) -lm
 
 # compile rule
 allocate.o: allocate.c data.h schedule.h memory.h
