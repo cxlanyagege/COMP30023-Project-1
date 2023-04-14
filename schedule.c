@@ -1,7 +1,7 @@
 #include "schedule.h"
 
 void start_scheduling(process_t **process, char *scheduler, 
-                      int num, int quantum) {
+                      int num, int quantum, char *mem_strategy) {
 
     // initiate current time from 0
     // assume all processes are not finished yet
@@ -11,7 +11,8 @@ void start_scheduling(process_t **process, char *scheduler,
 
     // determine scheduler
     if (strcmp(scheduler, "SJF") == 0) {
-        do_sjf(process, num, quantum, current_time, is_finished);
+        do_sjf(process, num, quantum, current_time, is_finished, 
+               mem_strategy);
     } else if (strcmp(scheduler, "RR") == 0) {
         do_rr(process, num, quantum, current_time, is_finished);
     }
@@ -20,17 +21,39 @@ void start_scheduling(process_t **process, char *scheduler,
 
 // Run processes in Shortest Job First
 void do_sjf(process_t **p, int n, int q, int time, 
-            int *is_finished) {
+            int *is_finished, char *strategy) {
 
     // sort processes ascending by service time
-    qsort(p, n, sizeof(*p), compare_time);
+    qsort(p, n, sizeof(*p), compare_service_time);
+
+    // create and initialize mem allocation
+    int use_strategy = 0;
+    int mem_allocated[n];
+    memory_t **memory;
+    if (strcmp(strategy, "best-fit") == 0) {
+        use_strategy = 1;
+        memory = create_mem_table();
+        memset(mem_allocated, 0, sizeof(mem_allocated));
+    }
 
     // run in sjf scheduling
     for (int i = 0; i < n; i++) {
-        int j;
+        int process_running = 0;
+        int j, memstart;
         for (j = 0; j < n; j++) {
             if (get_arrival_time(p[j]) <= time && 
                 is_finished[j] == 0) {
+
+                if (use_strategy) {
+                    if (!mem_allocated[j]) {
+                        memstart = allocate_mem(memory, get_process_mem(p[j]));
+                        print_ready_msg(time, get_process_name(p[j]), 
+                                        memstart);
+                        mem_allocated[j] = 1;
+                    }
+                }
+
+                process_running = 1;
                 print_running_msg(time, get_service_time(p[j]), 
                                   get_process_name(p[j]));
                 time += get_service_time(p[j]);
@@ -39,13 +62,45 @@ void do_sjf(process_t **p, int n, int q, int time,
             }
         }
 
+        if (!process_running) {
+            time++;
+            i--;
+            continue;
+        }
+
         // avoid readings beyond the array
         if (j == n) break;
 
         // print out finished result
         while (time % q != 0) time++;
+
+        //
+        int count = 0;
+        int *original_index = malloc(n * sizeof(int));
+        process_t **runtime = malloc(n * sizeof(process_t *));
+        for (int k = 0; k < n; k++) {
+            if (mem_allocated[k]) continue;
+
+            if (get_arrival_time(p[k]) <= time - q) {
+                runtime[count] = p[k];
+                original_index[count] = k;
+                count++;
+            }
+        }
+        
+        //runtime = realloc(runtime, count * sizeof(int));
+        qsort(runtime, count, sizeof(*runtime), compare_arrival_time);
+        for (int x = 0; x < count; x++) {
+            print_ready_msg(get_arrival_time(runtime[x]), get_process_name(runtime[x]), 
+                            allocate_mem(memory, get_process_mem(runtime[x])));
+            mem_allocated[original_index[x]] = 1;
+        }
+
         print_result_msg(n, q, time, p, is_finished, 
                          get_process_name(p[j]));
+
+        clear_mem(memory, memstart, get_process_mem(p[j]));
+        
     }
 
 }
@@ -101,8 +156,24 @@ void do_rr(process_t **p, int n, int q, int time,
 
 }
 
+// Compare arrival time of candidate processes
+int compare_arrival_time(const void *a, const void *b) {
+
+    process_t *p1 = *(process_t **)a;
+    process_t *p2 = *(process_t **)b;
+
+    if (get_arrival_time(p1) < get_arrival_time(p2)) {
+        return -1;
+    } else if (get_arrival_time(p1) > get_arrival_time(p2)) {
+        return 1;
+    } else {
+        return 0;
+    }
+
+}
+
 // Compare service time of candidate processes
-int compare_time(const void *a, const void *b) {
+int compare_service_time(const void *a, const void *b) {
 
     process_t *p1 = *(process_t **)a;
     process_t *p2 = *(process_t **)b;
@@ -125,9 +196,13 @@ void print_running_msg(int time, int remain_time, char *name) {
 void print_result_msg(int n, int q, int time, 
                       process_t **p, int *is_finished, char *name) {
     printf("%d,FINISHED,process_name=%s,proc_remaining=%d\n", 
-            time, 
-            name, 
+            time, name, 
             check_proc_remaining(n, q, time, p, is_finished));
+}
+
+void print_ready_msg(int time, char *name, int memstart) {
+    printf("%d,READY,process_name=%s,assigned_at=%d\n", 
+            time, name, memstart);
 }
 
 int check_proc_remaining(int n, int q, int time, 

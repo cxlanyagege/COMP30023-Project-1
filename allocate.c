@@ -33,7 +33,8 @@ int main(int argc, char *argv[]) {
     process_t **process_list = read_process(filename, &process_num);
 
     // start process schedulin
-    start_scheduling(process_list, scheduler, process_num, quantum);
+    start_scheduling(process_list, scheduler, process_num, quantum, 
+                     mem_strategy);
 
     // display scheduling result
 

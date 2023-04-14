@@ -19,4 +19,6 @@ char *get_process_name(process_t *process);
 
 int get_service_time(process_t *process);
 
+int get_process_mem(process_t *process);
+
 #endif

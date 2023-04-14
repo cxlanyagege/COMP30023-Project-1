@@ -62,3 +62,7 @@ char *get_process_name(process_t *process) {
 int get_service_time(process_t *process) {
     return process->service;
 }
+
+int get_process_mem(process_t *process) {
+    return process->memory;
+}
