@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "process.h"
+#include "data.h"
 #include "schedule.h"
 
 int main(int argc, char *argv[]) {
@@ -29,8 +29,13 @@ int main(int argc, char *argv[]) {
     }
 
     // read process list
-    char **process_lines = read_process(filename);
-    
-    // start process scheduling
+    int process_num;
+    char **process_lines = read_process(filename, &process_num);
+
+    // start process schedulin
+    char **result = start_scheduling(process_lines, scheduler, process_num);
+
+    // display scheduling result
+
 
 }

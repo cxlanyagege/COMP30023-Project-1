@@ -1,6 +1,6 @@
-#include "process.h"
+#include "data.h"
 
-char **read_process(char *filename) {
+char **read_process(char *filename, int *num) {
 
     // open process list file
     FILE *file = fopen(filename, "r");
@@ -15,6 +15,7 @@ char **read_process(char *filename) {
     while (fgets(line, sizeof(line), file) != NULL) {
         line_total++;
     }
+    num = line_total;
 
     // prepare storing process info
     char **lines = (char **)malloc(line_total * sizeof(char *));
