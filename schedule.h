@@ -7,6 +7,9 @@
 #include "data.h"
 #include "memory.h"
 
+typedef struct node node_t;
+typedef struct queue queue_t;
+
 void start_scheduling(process_t **lines, char *scheduler, 
                       int num, int quantum, char *mem_strategy);
 
@@ -14,7 +17,7 @@ void do_sjf(process_t **p, int num, int q, int time,
             int *is_finished, char *mem_strategy);
 
 void do_rr(process_t **p, int num, int q, int time, 
-           int *is_finished);
+           int *is_finished, char *mem_strategy);
 
 int compare_arrival_time(const void *a, const void *b);
 
