@@ -1,5 +1,15 @@
 #include "schedule.h"
 
+struct child {
+
+    int pipe_to_child[2];
+    int pipe_from_child[2];
+    pid_t pid;
+    uint32_t simulation_time_big_endian;
+
+    int in_use;
+};
+
 void start_scheduling(process_t **process, char *scheduler, 
                       int num, int quantum, char *mem_strategy) {
 
@@ -250,8 +260,20 @@ void do_rr(process_t **p, int n, int q, int time,
         remain_time[i] = get_service_time(p[i]);
     }
 
+    // initialize pipeline
+    child_t **child = malloc(n * sizeof(child_t *));
+    for (int i = 0; i < n; i++) {
+        child[i] = malloc(sizeof(child_t));
+
+        pipe(child[i]->pipe_from_child);
+        pipe(child[i]->pipe_to_child);
+
+        child[i]->in_use = 0;
+    }
+
     // run in rr scheduling
     char *last_process = NULL;
+    int last_process_index = 0;
 
     while (all_finished == 0) {
 
@@ -262,6 +284,7 @@ void do_rr(process_t **p, int n, int q, int time,
             if (get_arrival_time(p[i]) <= time && 
                 is_finished[i] == 0) {
 
+                // when using best-fit
                 if (use_strategy) {
                     for (int j = 0; j < n; j++) {
                         if (!mem_allocated[j] && get_arrival_time(p[j]) <= time && is_finished[i] == 0) {
@@ -280,11 +303,103 @@ void do_rr(process_t **p, int n, int q, int time,
                     }
                 }
 
+                
                 if (mem_allocated[i] && (last_process == NULL || 
                     strcmp(last_process, get_process_name(p[i])) != 0)) {
-                    print_running_msg(time, remain_time[i],
-                                      get_process_name(p[i]));
+
+                        if (last_process != NULL && child[last_process_index]->in_use) {
+                            child[last_process_index]->simulation_time_big_endian = htonl(time);
+
+                        write(child[last_process_index]->pipe_to_child[1], &child[last_process_index]->simulation_time_big_endian, sizeof(uint32_t));
+                        kill(child[last_process_index]->pid, SIGTSTP);
+
+                        int wstatus = 0;
+                        waitpid(child[last_process_index]->pid, &wstatus, WUNTRACED);
+                        while (!WIFSTOPPED(wstatus)) {
+                            waitpid(child[last_process_index]->pid, &wstatus, WUNTRACED);
+                        }
+                        }
+
+                    // process run first-time
+                    if (child[i]->in_use == 0) {
+
+                        child[i]->in_use = 1;
+                        child[i]->pid = fork();
+
+                        if (child[i]->pid == 0) {
+
+                            dup2(child[i]->pipe_to_child[0], STDIN_FILENO);
+                            dup2(child[i]->pipe_from_child[1], STDOUT_FILENO);
+                            close(child[i]->pipe_to_child[1]);
+                            close(child[i]->pipe_from_child[0]);
+
+                            // debug
+                            //char *pargv[] = {"./process", "-v", get_process_name(p[i]), NULL};
+
+                            // release
+                            char *pargv[] = {"./process", get_process_name(p[i]), NULL};
+                            execvp(pargv[0], pargv);
+
+
+                        } else {
+
+                            close(child[i]->pipe_to_child[0]);
+                            close(child[i]->pipe_from_child[1]);
+
+                            child[i]->simulation_time_big_endian = htonl(time);
+                            write(child[i]->pipe_to_child[1], &child[i]->simulation_time_big_endian, sizeof(uint32_t));
+
+                            uint8_t response;
+                            read(child[i]->pipe_from_child[0], &response, sizeof(response));
+
+                            if (response != (time & 0xFF));
+                    
+
+                        }
+
+                        print_running_msg(time, remain_time[i],
+                                          get_process_name(p[i]));
+                                      
+
+                    } else {
+
+                        
+
+                        //printf("%d\n", p);
+
+                        child[i]->simulation_time_big_endian = htonl(time);
+
+                        write(child[i]->pipe_to_child[1], &child[i]->simulation_time_big_endian, sizeof(uint32_t));
+                        kill(child[i]->pid, SIGCONT);
+                        //sleep(1);
+
+                        uint8_t response;
+                        read(child[i]->pipe_from_child[0], &response, sizeof(response));
+
+                        if (response != (time & 0xFF));
+
+                        print_running_msg(time, remain_time[i],
+                                          get_process_name(p[i]));
+                                      
+
+                    }
+
                     last_process = get_process_name(p[i]);
+                    last_process_index = i;
+
+                } else if (mem_allocated[i] && strcmp(last_process, get_process_name(p[i])) == 0) {
+
+                    child[i]->simulation_time_big_endian = htonl(time);
+
+                    write(child[i]->pipe_to_child[1], &child[i]->simulation_time_big_endian, sizeof(uint32_t));
+                    kill(child[i]->pid, SIGCONT);
+                    //sleep(1);
+
+                    uint8_t response;
+                    read(child[i]->pipe_from_child[0], &response, sizeof(response));
+
+                    if (response != (time & 0xFF));
+
                 } else if (!mem_allocated[i]) {
                     time -= q;
                     remain_time[i] += q;
@@ -302,6 +417,30 @@ void do_rr(process_t **p, int n, int q, int time,
                     turnaround += (time - get_arrival_time(p[i]));
 
                     total_overhead += (double)((time - get_arrival_time(p[i])) / (double)(get_service_time(p[i])));
+
+        child[i]->simulation_time_big_endian = htonl(time);
+        write(child[i]->pipe_to_child[1], &child[i]->simulation_time_big_endian, sizeof(uint32_t));
+        kill(child[i]->pid, SIGTERM);
+
+        // wait child to terminate
+        int status;
+        waitpid(child[i]->pid, &status, 0);
+
+        // read 64-byte string from child 
+        char sha[65];
+        read(child[i]->pipe_from_child[0], sha, 64);
+        sha[64] = '\0';
+
+        // print
+        printf("%d,FINISHED-PROCESS,process_name=%s,sha=%s\n", 
+            time, get_process_name(p[i]), 
+            sha);
+
+        close(child[i]->pipe_to_child[1]);
+        close(child[i]->pipe_from_child[0]);
+
+        child[i]->in_use = 0;
+
                     if ((double)(time - get_arrival_time(p[i])) / (get_service_time(p[i])) > max_overhead) {
                         max_overhead = (double)(time - get_arrival_time(p[i])) / (get_service_time(p[i]));
                     }
@@ -408,40 +547,4 @@ int check_proc_remaining(int n, int q, int time,
     }
 
     return remain;
-}
-
-void wait_process_finished(int pid, int *pipe_from_child, int *pipe_to_child) {
-    if (pid == 0) {
-
-                    dup2(pipe_to_child[0], STDIN_FILENO);
-                    dup2(pipe_from_child[1], STDOUT_FILENO);
-                    close(pipe_to_child[1]);
-                    close(pipe_from_child[0]);
-
-                } else {
-
-                    close(pipe_to_child[0]);
-                    close(pipe_from_child[1]);
-
-                    uint32_t simulation_time = 30;
-                    uint32_t simulation_time_big_endian = htonl(simulation_time);
-                    write(pipe_to_child[1], &simulation_time_big_endian, sizeof(uint32_t));
-
-                    kill(pid, SIGTERM);
-
-                    int status;
-                    waitpid(pid, &status, 0);
-
-                    // Read 64-byte string from child process
-                    char buffer[65];
-                    read(pipe_from_child[0], buffer, 64);
-                    buffer[64] = '\0';
-
-                    // Print the received 64-byte string
-                    printf("Received string: %s\n", buffer);
-
-                    close(pipe_to_child[1]);
-                    close(pipe_from_child[0]);
-
-                }
 }

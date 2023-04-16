@@ -17,6 +17,8 @@
 
 #define IMPLEMENTS_REAL_PROCESS
 
+typedef struct child child_t;
+
 void start_scheduling(process_t **lines, char *scheduler, 
                       int num, int quantum, char *mem_strategy);
 
