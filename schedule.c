@@ -46,6 +46,15 @@ void do_sjf(process_t **p, int n, int q, int time,
     for (int i = 0; i < n; i++) {
         int process_running = 0;
         int j, memstart;
+
+        int pipe_to_child[2];
+        int pipe_from_child[2];
+        pipe(pipe_to_child);
+        pipe(pipe_from_child);
+
+        pid_t pid;
+        uint32_t simulation_time_big_endian;
+
         for (j = 0; j < n; j++) {
             if (get_arrival_time(p[j]) <= time && 
                 is_finished[j] == 0) {
@@ -59,10 +68,76 @@ void do_sjf(process_t **p, int n, int q, int time,
                     }
                 }
 
+                pid = fork();
+
+                if (pid == 0) {
+
+                    dup2(pipe_to_child[0], STDIN_FILENO);
+                    dup2(pipe_from_child[1], STDOUT_FILENO);
+                    close(pipe_to_child[1]);
+                    close(pipe_from_child[0]);
+
+                    // debug
+                    //char *pargv[] = {"./process", "-v", get_process_name(p[j]), NULL};
+
+                    // release
+                    char *pargv[] = {"./process", get_process_name(p[j]), NULL};
+                    execvp(pargv[0], pargv);
+
+                } else {
+
+                    close(pipe_to_child[0]);
+                    close(pipe_from_child[1]);
+
+                    simulation_time_big_endian = htonl(time);
+                    write(pipe_to_child[1], &simulation_time_big_endian, sizeof(uint32_t));
+
+                    uint8_t response;
+                    read(pipe_from_child[0], &response, sizeof(response));
+
+                    if (response != (time & 0xFF));
+                    
+
+                }
+
                 process_running = 1;
                 print_running_msg(time, get_service_time(p[j]), 
                                   get_process_name(p[j]));
-                time += get_service_time(p[j]);
+
+                int start_time = time;
+
+                time += q;
+
+                while (time - start_time < get_service_time(p[j])) {
+                    simulation_time_big_endian = htonl(time);
+
+                    // 
+                    // write(pipe_to_child[1], &simulation_time_big_endian, sizeof(uint32_t));
+                    // kill(pid, SIGTSTP);
+
+                    // int wstatus = 0;
+                    // pid_t w = waitpid(pid, &wstatus, WUNTRACED);
+                    // if (!WIFSTOPPED(wstatus)) {
+                    //     while (!WIFSTOPPED(wstatus)) {
+                    //         waitpid(pid, &wstatus, WUNTRACED);
+                    //     }
+                    // }
+
+                    //printf("%d\n", p);
+
+                    write(pipe_to_child[1], &simulation_time_big_endian, sizeof(uint32_t));
+                    kill(pid, SIGCONT);
+                    //sleep(1);
+
+                    uint8_t response;
+                    read(pipe_from_child[0], &response, sizeof(response));
+
+                    if (response != (time & 0xFF));
+
+                    time += q;
+                }
+
+                //time += get_service_time(p[j]);
                 is_finished[j] = 1;
                 break;
             }
@@ -77,37 +152,56 @@ void do_sjf(process_t **p, int n, int q, int time,
         // avoid readings beyond the array
         if (j == n) break;
 
-        // print out finished result
-        while (time % q != 0) time++;
-
         if (use_strategy) {
-        int count = 0;
-        int *original_index = malloc(n * sizeof(int));
-        process_t **runtime = malloc(n * sizeof(process_t *));
-        for (int k = 0; k < n; k++) {
-            if (mem_allocated[k]) continue;
+            int count = 0;
+            int *original_index = malloc(n * sizeof(int));
+            process_t **runtime = malloc(n * sizeof(process_t *));
+            for (int k = 0; k < n; k++) {
+                if (mem_allocated[k]) continue;
 
-            if (get_arrival_time(p[k]) <= time - q) {
-                runtime[count] = p[k];
-                original_index[count] = k;
-                count++;
+                if (get_arrival_time(p[k]) <= time - q) {
+                    runtime[count] = p[k];
+                    original_index[count] = k;
+                    count++;
+                }
             }
-        }
 
-        //runtime = realloc(runtime, count * sizeof(int));
-        qsort(runtime, count, sizeof(*runtime), compare_arrival_time);
-        for (int x = 0; x < count; x++) {
-            print_ready_msg(get_arrival_time(runtime[x]), get_process_name(runtime[x]), 
-                            allocate_mem(memory, get_process_mem(runtime[x])));
-            mem_allocated[original_index[x]] = 1;
-        }
+        
+            qsort(runtime, count, sizeof(*runtime), compare_arrival_time);
+            for (int x = 0; x < count; x++) {
+                print_ready_msg(get_arrival_time(runtime[x]), get_process_name(runtime[x]), 
+                                allocate_mem(memory, get_process_mem(runtime[x])));
+                mem_allocated[original_index[x]] = 1;
+            }
 
-        clear_mem(memory, memstart, get_process_mem(p[j]));
+            clear_mem(memory, memstart, get_process_mem(p[j]));
 
         }
 
         print_result_msg(n, q, time, p, is_finished, 
                          get_process_name(p[j]));
+
+        simulation_time_big_endian = htonl(time);
+        write(pipe_to_child[1], &simulation_time_big_endian, sizeof(uint32_t));
+        kill(pid, SIGTERM);
+
+        // wait child to terminate
+        int status;
+        waitpid(pid, &status, 0);
+
+        // read 64-byte string from child 
+        char sha[65];
+        read(pipe_from_child[0], sha, 64);
+        sha[64] = '\0';
+
+        // print
+        printf("%d,FINISHED-PROCESS,process_name=%s,sha=%s\n", 
+            time, get_process_name(p[j]), 
+            sha);
+
+        close(pipe_to_child[1]);
+        close(pipe_from_child[0]);
+        
 
         turnaround += (time - get_arrival_time(p[j]));
 
@@ -314,4 +408,40 @@ int check_proc_remaining(int n, int q, int time,
     }
 
     return remain;
+}
+
+void wait_process_finished(int pid, int *pipe_from_child, int *pipe_to_child) {
+    if (pid == 0) {
+
+                    dup2(pipe_to_child[0], STDIN_FILENO);
+                    dup2(pipe_from_child[1], STDOUT_FILENO);
+                    close(pipe_to_child[1]);
+                    close(pipe_from_child[0]);
+
+                } else {
+
+                    close(pipe_to_child[0]);
+                    close(pipe_from_child[1]);
+
+                    uint32_t simulation_time = 30;
+                    uint32_t simulation_time_big_endian = htonl(simulation_time);
+                    write(pipe_to_child[1], &simulation_time_big_endian, sizeof(uint32_t));
+
+                    kill(pid, SIGTERM);
+
+                    int status;
+                    waitpid(pid, &status, 0);
+
+                    // Read 64-byte string from child process
+                    char buffer[65];
+                    read(pipe_from_child[0], buffer, 64);
+                    buffer[64] = '\0';
+
+                    // Print the received 64-byte string
+                    printf("Received string: %s\n", buffer);
+
+                    close(pipe_to_child[1]);
+                    close(pipe_from_child[0]);
+
+                }
 }
