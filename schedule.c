@@ -440,6 +440,9 @@ void do_rr(process_t **p, int n, int q, int *time,
                     // continue run process
                     else {
                         send_cont_signal(child, time, i);
+                        print_running_msg(*time, remain_time[i],
+                                          get_process_name(p[i]));
+
                     }
 
                     // store previous process key info
