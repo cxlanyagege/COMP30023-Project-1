@@ -26,4 +26,4 @@ memory.o: memory.c memory.h
 
 # clean rule
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET) process
