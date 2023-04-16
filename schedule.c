@@ -176,6 +176,7 @@ void do_sjf(process_t **p, int n, int q, int time,
                 if (mem_allocated[k]) continue;
 
                 if (get_arrival_time(p[k]) <= time - q) {
+                    //runtime[count] = malloc(sizeof(runtime[k]));
                     runtime[count] = p[k];
                     original_index[count] = k;
                     count++;
@@ -191,6 +192,12 @@ void do_sjf(process_t **p, int n, int q, int time,
             }
 
             clear_mem(memory, memstart, get_process_mem(p[j]));
+
+            //for (int k = 0; k < count; k++) {
+            //    free(runtime[k]);
+            //}
+            free(runtime);
+            free(original_index);
 
         }
 
@@ -236,6 +243,10 @@ void do_sjf(process_t **p, int n, int q, int time,
     }
     printf("Turnaround time %d\nTime overhead %.2lf %.2lf\nMakespan %d\n", 
             turnaround, round(max_overhead * 100) / 100, round(total_overhead * 100 / n) / 100, time);
+
+    if (use_strategy) {
+        free_mem(memory);
+    }
 
 }
 
@@ -477,6 +488,16 @@ void do_rr(process_t **p, int n, int q, int time,
     }
     printf("Turnaround time %d\nTime overhead %.2lf %.2lf\nMakespan %d\n", 
             turnaround, round(max_overhead * 100) / 100, round(total_overhead / n * 100) / 100, time);
+
+    // free
+    for (int i = 0; i < n; i++) {
+        free(child[i]);
+    }
+    free(child);
+
+    if (use_strategy) {
+        free_mem(memory);
+    }
 
 }
 

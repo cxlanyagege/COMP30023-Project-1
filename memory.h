@@ -14,4 +14,6 @@ int allocate_mem(memory_t **memory, int size);
 
 void clear_mem(memory_t **memory, int start, int size);
 
+void free_mem(memory_t **memory);
+
 #endif

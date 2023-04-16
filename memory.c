@@ -57,3 +57,10 @@ void clear_mem(memory_t **memory, int start, int size) {
         memory[i]->is_allocated = 0;
     }
 }
+
+void free_mem(memory_t **memory) {
+    for (int i = 0; i < MAX_MEMORY; i++) {
+        free(memory[i]);
+    }
+    free(memory);
+}

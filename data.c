@@ -13,7 +13,7 @@ process_t **read_process(char *filename, int *num) {
 
     // open process list file
     FILE *file = fopen(filename, "r");
-    assert(file);
+    //assert(file);
     if (file == NULL) {
         exit(1);
     }
@@ -35,7 +35,7 @@ process_t **read_process(char *filename, int *num) {
     int i = 0;
     while (fgets(line, sizeof(line), file) != NULL) {
         // line[strcspn(line, "\n")] = 0;
-        processes[i] = malloc(sizeof(process_t *));
+        processes[i] = malloc(sizeof(process_t));
         sscanf(line, "%d %s %d %d", &processes[i]->arrival,
                                     processes[i]->name,
                                     &processes[i]->service,
