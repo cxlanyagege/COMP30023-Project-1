@@ -28,6 +28,12 @@ void start_scheduling(process_t **process, char *scheduler,
               mem_strategy);
     }
 
+    // 
+    for (int i = 0; i < num; i++) {
+        free(process[i]);
+    }
+    free(process);
+
 }
 
 // Run processes in Shortest Job First
