@@ -9,11 +9,11 @@ struct process
 };
 
 
+// Read all process info from file
 process_t **read_process(char *filename, int *num) {
 
     // open process list file
     FILE *file = fopen(filename, "r");
-    //assert(file);
     if (file == NULL) {
         exit(1);
     }
@@ -31,10 +31,9 @@ process_t **read_process(char *filename, int *num) {
                                    sizeof(process_t *));
     fseek(file, 0, SEEK_SET);
 
-    // store process
+    // store process into struct
     int i = 0;
     while (fgets(line, sizeof(line), file) != NULL) {
-        // line[strcspn(line, "\n")] = 0;
         processes[i] = malloc(sizeof(process_t));
         sscanf(line, "%d %s %d %d", &processes[i]->arrival,
                                     processes[i]->name,
@@ -51,18 +50,26 @@ process_t **read_process(char *filename, int *num) {
 
 }
 
+
+// Get process's arrival time
 int get_arrival_time(process_t *process) {
     return process->arrival;
 }
 
+
+// Get process's name
 char *get_process_name(process_t *process) {
     return process->name;
 }
 
+
+// Get process's servicing time
 int get_service_time(process_t *process) {
     return process->service;
 }
 
+
+// Get process's memory requirement
 int get_process_mem(process_t *process) {
     return process->memory;
 }

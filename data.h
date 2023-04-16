@@ -3,11 +3,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 
-#define MAX_PROCESS_NAME 8
 #define MAX_CHAR_LINE 32
+#define MAX_PROCESS_NAME 8
 
 typedef struct process process_t;
 

@@ -1,5 +1,6 @@
 .vscode/
 cases/
+process
 process.c
 allocate
 allocate.o

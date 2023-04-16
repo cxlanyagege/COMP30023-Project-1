@@ -36,7 +36,4 @@ int main(int argc, char *argv[]) {
     start_scheduling(process_list, scheduler, process_num, quantum, 
                      mem_strategy);
 
-    // display scheduling result
-
-
 }

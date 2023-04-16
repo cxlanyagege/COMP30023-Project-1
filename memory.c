@@ -6,6 +6,8 @@ struct memory
     int is_allocated;
 };
 
+
+// Create memory blocks table
 memory_t **create_mem_table() {
     memory_t **memory = malloc(MAX_MEMORY * sizeof(memory_t **));
     for (int i = 0; i < MAX_MEMORY; i++) {
@@ -17,11 +19,14 @@ memory_t **create_mem_table() {
     return memory;
 }
 
+
+// Allocate memory for specific size
 int allocate_mem(memory_t **memory, int size) {
 
     int min_mem_diff = INT_MAX;
     int min_start_index = -1;
 
+    // traverse mem region finding fittest
     for (int i = 0; i < MAX_MEMORY; i++) {
         if (!memory[i]->is_allocated) {
             int j;
@@ -42,6 +47,7 @@ int allocate_mem(memory_t **memory, int size) {
         }
     }
 
+    // falied to alloc mem
     if (min_start_index != -1) {
         for (int i = min_start_index; i < min_start_index + size; i++) {
             memory[i]->is_allocated = 1;
@@ -52,12 +58,16 @@ int allocate_mem(memory_t **memory, int size) {
 
 }
 
+
+// Clear memory blocks with specific starts and size
 void clear_mem(memory_t **memory, int start, int size) {
     for (int i = start; i < start + size; i++) {
         memory[i]->is_allocated = 0;
     }
 }
 
+
+// Free system memory when allocating blocks
 void free_mem(memory_t **memory) {
     for (int i = 0; i < MAX_MEMORY; i++) {
         free(memory[i]);
